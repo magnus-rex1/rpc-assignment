@@ -6,12 +6,11 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <ostream>
-#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 
 void printSA(struct sockaddr_in sa);
-void makeDestSA(struct sockaddr_in* sa, char* hostname, int port);
+void makeDestSA(struct sockaddr_in* sa, const char* hostname, int port);
 void makeLocalSA(struct sockaddr_in* sa);
 void makeReceiverSA(struct sockaddr_in* sa, int port);
 

@@ -17,7 +17,7 @@ void printSA(struct sockaddr_in sa)
         sa.sin_family, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 }
 
-void makeDestSA(struct sockaddr_in* sa, char* hostname, int port)
+void makeDestSA(struct sockaddr_in* sa, const char* hostname, int port)
 {
     struct hostent* host;
 
@@ -157,7 +157,7 @@ Status Socket::UDPsend(UDPMessage* m, SocketAddress* destination)
     const char* mess = m->GetMessage();
     std::cout << "Sending message: \"" << mess << "\"" << '\n';
     std::cout << "To the address: " << inet_ntoa(destination->sin_addr)
-              << ":" << ntohs(destination->sin_port) << '\n';
+              << ":" << ntohs(destination->sin_port) << "\n\n";
     // send(s, mess, strlen(mess), 0); // This is used for stream sockets
     sendto(s, mess, strlen(mess), 0, (struct sockaddr*)destination, sizeof(struct sockaddr));
 
@@ -175,17 +175,17 @@ Status Socket::UDPreceive(UDPMessage** m, SocketAddress* origin)
 
     struct sockaddr_storage clientAddr;
     socklen_t clientLen = sizeof clientAddr;
-    int len = recvfrom(s, buffer, sizeof(buffer), 0, (struct sockaddr*)&clientAddr, &clientLen);
+    [[maybe_unused]] int len = recvfrom(s, buffer, sizeof(buffer), 0, (struct sockaddr*)&clientAddr, &clientLen);
+    *origin = *(SocketAddress*)&clientAddr;
+
     std::cout << "Message received: " << buffer << '\n'
               << "From: ";
 
     char str[INET_ADDRSTRLEN];
     const char* packet = inet_ntop(clientAddr.ss_family, get_in_addr((struct sockaddr*)&clientAddr), str, sizeof str);
-    std::cout << packet << std::endl;
+    std::cout << packet << "\n\n";
 
     *m = new UDPMessage(buffer, sizeof(buffer));
-
-    std::cout << "updmessage: " << *m << '\n';
 
     return status;
 }
@@ -200,11 +200,9 @@ Client::Client()
 
 Status Client::DoOperation(UDPMessage* callMessage, UDPMessage* replyMessage, SocketAddress* server)
 {
-    // std::cout << "Sending from address: " << socketAddress->sin_addr << std:
-    // printSA(socketAddress);
     Status status = UDPsend(callMessage, server);
     std::cout << "Waiting for reply message\n";
-    // status = UDPreceive(&replyMessage, server);
+    status = UDPreceive(&replyMessage, server);
     return status;
 }
 
@@ -219,7 +217,15 @@ Server::Server(int x)
 
 Status Server::GetRequest(UDPMessage* callMessage, SocketAddress* client)
 {
-    return UDPreceive(&callMessage, client);
+    Status status = UDPreceive(&callMessage, client);
+
+    std::string input;
+    std::cout << "Enter a message: ";
+    std::getline(std::cin, input);
+    UDPMessage* mess = new UDPMessage(input.c_str(), input.length());
+    status = UDPsend(mess, client);
+
+    return status;
 }
 
 Status Server::SendReply(UDPMessage* replyMessage, SocketAddress* client)

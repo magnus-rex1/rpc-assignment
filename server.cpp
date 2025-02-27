@@ -1,21 +1,11 @@
 #include "socket.h"
-#include <iostream>
 
 #define SERVER_PORT IPPORT_RESERVED + getuid()
 
 int main(int argc, char** argv)
 {
-    // Socket socket;
-
-    // if (argc <= 1) {
-    //     std::cout << "Usage: port\n";
-    //     exit(1);
-    // }
-
-    // SocketAddress* origin;
-    // makeReceiverSA(origin, 8000);
-
-    // socket.UDPreceive(nullptr, nullptr);
+    (void)argc;
+    (void)argv;
     Server server(SERVER_PORT);
     SocketAddress* client = new SocketAddress;
     const char* mess = "test message";
@@ -23,8 +13,6 @@ int main(int argc, char** argv)
 
     while (1) {
         server.GetRequest(callMessage, client);
-        // server.UDPreceive(&callMessage, origin);
-        std::cout << callMessage << '\n';
     }
 
     delete callMessage;
