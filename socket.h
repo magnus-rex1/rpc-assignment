@@ -1,9 +1,11 @@
 #include <arpa/inet.h>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <ostream>
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -24,11 +26,20 @@ using SocketAddress = struct sockaddr_in;
 
 class Message {
 public:
-    Message(unsigned char*, unsigned int); // message and length supplied
+    Message(const char*, unsigned int); // message and length supplied
     explicit Message(unsigned int); // only the length
 
+    // void SetMessage();
+    const char* GetMessage();
+    unsigned int GetLength();
+
+    friend std::ostream& operator<<(std::ostream& os, Message* m)
+    {
+        return os << m->data << std::endl;
+    }
+
 private:
-    unsigned char* data;
+    const char* data;
     unsigned int length;
 };
 
@@ -38,12 +49,22 @@ class Socket {
 public:
     Socket();
     Socket(int);
+    ~Socket();
+
+    void init(int);
     Status UDPsend(UDPMessage* m, SocketAddress* destination);
     Status UDPreceive(UDPMessage** m, SocketAddress* origin);
 
 private:
     int s; // socket descriptor
     SocketAddress* socketAddress;
+
+    struct ClientSocket {
+        int s;
+        SocketAddress sa;
+        socklen_t len;
+    };
+    std::array<ClientSocket, 5> clientSockets;
 };
 
 class Client : public Socket {

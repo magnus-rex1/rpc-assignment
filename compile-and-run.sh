@@ -35,4 +35,4 @@ if [[ ! -f compile_commands.json ]]; then
 fi
 
 cmake --build build
-
+./build/server
