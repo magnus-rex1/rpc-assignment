@@ -34,3 +34,5 @@
 # Build dir
 build/
 .cache/
+
+compile_commands.json

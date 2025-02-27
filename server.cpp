@@ -24,6 +24,7 @@ int main(int argc, char** argv)
     while (1) {
         server.GetRequest(callMessage, client);
         // server.UDPreceive(&callMessage, origin);
+        std::cout << callMessage << '\n';
     }
 
     delete callMessage;

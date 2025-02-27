@@ -63,6 +63,16 @@ unsigned int Message::GetLength()
     return length;
 }
 
+// get sockaddr, IPv4 or IPv6:
+void* get_in_addr(struct sockaddr* sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
 /*
  * Socket implementation
  */
@@ -161,20 +171,21 @@ Status Socket::UDPreceive(UDPMessage** m, SocketAddress* origin)
 
     char buffer[SIZE];
     // recv(clientSocket, buffer, sizeof(buffer), 0);
+    memset(buffer, 0, sizeof buffer);
 
-    struct sockaddr clientAddr;
-    socklen_t clientLen = sizeof clientLen;
+    struct sockaddr_storage clientAddr;
+    socklen_t clientLen = sizeof clientAddr;
     int len = recvfrom(s, buffer, sizeof(buffer), 0, (struct sockaddr*)&clientAddr, &clientLen);
     std::cout << "Message received: " << buffer << '\n'
               << "From: ";
 
     char str[INET_ADDRSTRLEN];
-    // const char* packet = inet_ntop(clientAddr.sa_family, &(((struct sockaddr_in*)&clientAddr)->sin_addr), str, sizeof str);
-    const char* packet = inet_ntop(clientAddr.sa_family, &clientAddr.sa_data, str, sizeof str);
-    std::cout << "-> " << packet << std::endl;
-    std::cout << "str: " << str << '\n';
+    const char* packet = inet_ntop(clientAddr.ss_family, get_in_addr((struct sockaddr*)&clientAddr), str, sizeof str);
+    std::cout << packet << std::endl;
 
     *m = new UDPMessage(buffer, sizeof(buffer));
+
+    std::cout << "updmessage: " << *m << '\n';
 
     return status;
 }
