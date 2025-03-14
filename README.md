@@ -1,6 +1,6 @@
 # rpc-assignment
 
-RPC demonstration usin Unix sockets
+RPC demonstration using Unix sockets
 
 # Running
 

@@ -3,13 +3,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#define SIZE 1024
 
 void printSA(struct sockaddr_in sa)
 {
@@ -41,10 +41,11 @@ void makeReceiverSA(struct sockaddr_in* sa, int port)
  * Message implementation
  */
 
-Message::Message(const char* message, unsigned int len)
+Message::Message(unsigned char* message, unsigned int len)
 {
-    data = message;
     length = len;
+    data = new unsigned char[len + 1];
+    strcpy((char*)data, (char*)message);
 }
 
 Message::Message(unsigned int len)
@@ -53,12 +54,38 @@ Message::Message(unsigned int len)
     length = len;
 }
 
-const char* Message::GetMessage()
+// Deep copy semantics
+//
+// Deep copy constructor
+Message::Message(const Message& other)
+    : data { nullptr }
+{
+    if (other.data) {
+        data = new unsigned char[strlen((const char*)other.data) + 1];
+        strcpy((char*)data, (const char*)other.data);
+    }
+}
+
+// Deep copy assignment
+Message& Message::operator=(const Message& other)
+{
+    if (this != &other) {
+        delete[] data; // free old memory
+        data = nullptr;
+        if (other.data) {
+            data = new unsigned char[strlen((char*)other.data) + 1];
+            strcpy((char*)data, (char*)other.data);
+        }
+    }
+    return *this;
+}
+
+unsigned char* Message::GetMessage() const
 {
     return data;
 }
 
-unsigned int Message::GetLength()
+unsigned int Message::GetLength() const
 {
     return length;
 }
@@ -124,7 +151,7 @@ Socket::Socket(int port)
 
     socketAddress->sin_family = AF_INET;
     socketAddress->sin_addr.s_addr = htonl(INADDR_ANY);
-    socketAddress->sin_port = htons(port);
+    socketAddress->sin_port = htons(port); // convert to network byte order
 
     if (bind(s, (struct sockaddr*)socketAddress, sizeof(struct sockaddr_in)) < 0) {
         std::cerr << "Problem binding\n";
@@ -138,11 +165,13 @@ Socket::Socket(int port)
         std::cerr << "Error getsockname\n";
         exit(1);
     }
-    std::cout << "The server passive port number is " << ntohs(socketAddress->sin_port) << std::endl;
+    std::cout << "The server port number is " << ntohs(socketAddress->sin_port) << std::endl;
+    std::cout << "Start the client with this port number\n";
 }
 
 Socket::~Socket()
 {
+    close(s);
     delete socketAddress;
 }
 
@@ -151,15 +180,14 @@ Status Socket::UDPsend(UDPMessage* m, SocketAddress* destination)
     Status status;
     status = Status::Ok;
 
-    // connect(s, (struct sockaddr*)destination, sizeof(struct sockaddr));
-
-    printSA(*socketAddress);
-    const char* mess = m->GetMessage();
+    unsigned char* mess = m->GetMessage();
+    std::cout << "\n----------------------------------------------------\n";
     std::cout << "Sending message: \"" << mess << "\"" << '\n';
     std::cout << "To the address: " << inet_ntoa(destination->sin_addr)
-              << ":" << ntohs(destination->sin_port) << "\n\n";
-    // send(s, mess, strlen(mess), 0); // This is used for stream sockets
-    sendto(s, mess, strlen(mess), 0, (struct sockaddr*)destination, sizeof(struct sockaddr));
+              << ":" << ntohs(destination->sin_port);
+    std::cout << "\n----------------------------------------------------\n";
+
+    sendto(s, mess, strlen((const char*)mess), 0, (struct sockaddr*)destination, sizeof(struct sockaddr));
 
     return status;
 }
@@ -170,22 +198,28 @@ Status Socket::UDPreceive(UDPMessage** m, SocketAddress* origin)
     status = Status::Ok;
 
     char buffer[SIZE];
-    // recv(clientSocket, buffer, sizeof(buffer), 0);
     memset(buffer, 0, sizeof buffer);
 
     struct sockaddr_storage clientAddr;
     socklen_t clientLen = sizeof clientAddr;
+
     [[maybe_unused]] int len = recvfrom(s, buffer, sizeof(buffer), 0, (struct sockaddr*)&clientAddr, &clientLen);
+
     *origin = *(SocketAddress*)&clientAddr;
 
-    std::cout << "Message received: " << buffer << '\n'
-              << "From: ";
+    std::cout << "\n----------------------------------------------------\n";
+    std::cout << "Message received: \"" << buffer << "\"\n"
+              << "From: " << inet_ntoa(origin->sin_addr)
+              << ':' << ntohs(origin->sin_port);
+    std::cout << "\n----------------------------------------------------\n";
 
-    char str[INET_ADDRSTRLEN];
-    const char* packet = inet_ntop(clientAddr.ss_family, get_in_addr((struct sockaddr*)&clientAddr), str, sizeof str);
-    std::cout << packet << "\n\n";
+    // alternative way of getting the address of the sender(origin)
+    // char s[INET_ADDRSTRLEN];
+    // const char* addr = inet_ntop(AF_INET, &origin->sin_addr, s, sizeof s);
+    // std::cout << addr << std::endl;
 
-    *m = new UDPMessage(buffer, sizeof(buffer));
+    UDPMessage mess((unsigned char*)buffer, len); // create a new UDPMessage
+    **m = mess; // transfer ownership
 
     return status;
 }
@@ -203,6 +237,7 @@ Status Client::DoOperation(UDPMessage* callMessage, UDPMessage* replyMessage, So
     Status status = UDPsend(callMessage, server);
     std::cout << "Waiting for reply message\n";
     status = UDPreceive(&replyMessage, server);
+    // std::cout << "DoOperation: " << *replyMessage << "\n";
     return status;
 }
 
@@ -217,15 +252,7 @@ Server::Server(int x)
 
 Status Server::GetRequest(UDPMessage* callMessage, SocketAddress* client)
 {
-    Status status = UDPreceive(&callMessage, client);
-
-    std::string input;
-    std::cout << "Enter a message: ";
-    std::getline(std::cin, input);
-    UDPMessage* mess = new UDPMessage(input.c_str(), input.length());
-    status = UDPsend(mess, client);
-
-    return status;
+    return UDPreceive(&callMessage, client);
 }
 
 Status Server::SendReply(UDPMessage* replyMessage, SocketAddress* client)

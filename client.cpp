@@ -21,8 +21,9 @@ int main(int argc, char** argv)
         std::string input;
         std::cout << "Enter a message: ";
         std::getline(std::cin, input);
-        UDPMessage* callMessage = new UDPMessage(input.c_str(), input.length());
-        UDPMessage* replyMessage = new UDPMessage("", 0);
+
+        UDPMessage* callMessage = new UDPMessage((unsigned char*)input.c_str(), input.length());
+        UDPMessage* replyMessage = new UDPMessage(1024);
         client.DoOperation(callMessage, replyMessage, &dest);
 
         delete callMessage;

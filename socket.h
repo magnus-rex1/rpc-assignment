@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define SIZE 1024
+
 void printSA(struct sockaddr_in sa);
 void makeDestSA(struct sockaddr_in* sa, const char* hostname, int port);
 void makeLocalSA(struct sockaddr_in* sa);
@@ -25,20 +27,24 @@ using SocketAddress = struct sockaddr_in;
 
 class Message {
 public:
-    Message(const char*, unsigned int); // message and length supplied
+    Message(unsigned char*, unsigned int); // message and length supplied
     explicit Message(unsigned int); // only the length
 
-    // void SetMessage();
-    const char* GetMessage();
-    unsigned int GetLength();
+    Message(const Message&);
+    Message& operator=(const Message&);
 
-    friend std::ostream& operator<<(std::ostream& os, Message* m)
+    ~Message() { delete[] data; }
+
+    unsigned char* GetMessage() const;
+    unsigned int GetLength() const;
+
+    friend std::ostream& operator<<(std::ostream& os, const Message& m)
     {
-        return os << m->data << std::endl;
+        return os << m.data << std::endl;
     }
 
 private:
-    const char* data;
+    unsigned char* data;
     unsigned int length;
 };
 
@@ -57,13 +63,6 @@ public:
 private:
     int s; // socket descriptor
     SocketAddress* socketAddress;
-
-    struct ClientSocket {
-        int s;
-        SocketAddress sa;
-        socklen_t len;
-    };
-    std::array<ClientSocket, 5> clientSockets;
 };
 
 class Client : public Socket {
