@@ -1,5 +1,4 @@
 #include <arpa/inet.h>
-#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -10,6 +9,7 @@
 #include <unistd.h>
 
 #define SIZE 1024
+#define SERVER_PORT IPPORT_RESERVED + getuid()
 
 void printSA(struct sockaddr_in sa);
 void makeDestSA(struct sockaddr_in* sa, const char* hostname, int port);
@@ -48,7 +48,7 @@ private:
     unsigned int length;
 };
 
-using UDPMessage = Message;
+using UDPMessage = Message; // UDPMessage is now an alias of Message
 
 class Socket {
 public:
@@ -56,7 +56,7 @@ public:
     Socket(int);
     ~Socket();
 
-    void init(int);
+    void init(int port = 0);
     Status UDPsend(UDPMessage* m, SocketAddress* destination);
     Status UDPreceive(UDPMessage** m, SocketAddress* origin);
 
@@ -76,4 +76,22 @@ public:
     Server(int);
     Status GetRequest(UDPMessage* callMessage, SocketAddress* client);
     Status SendReply(UDPMessage* replyMessage, SocketAddress* client);
+};
+
+enum MessageType {
+    Request,
+    Reply
+};
+
+class RPCMessage {
+public:
+    RPCMessage(MessageType);
+    RPCMessage(MessageType, int, int, int);
+    void marshall(Message**); // Marshalls self to Message argument
+    void unmarshal(Message*); // Unmarshalls from given argument to self
+private:
+    MessageType type;
+    unsigned int requestId;
+    unsigned int procedureId; // e.g. (1,2,3,4) for (+,-,*,/)
+    int arg1, arg2; // arguments/ return parameters
 };
