@@ -55,6 +55,7 @@ int main(int argc, char** argv)
             }
 
             client->DoOperation(callMessage, replyMessage, dest);
+            std::cout << *replyMessage << std::endl;
 
             delete callMessage;
             delete replyMessage;

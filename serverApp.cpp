@@ -1,4 +1,5 @@
 #include "socket.h"
+#include <string>
 
 int main(void)
 {
@@ -11,25 +12,32 @@ int main(void)
         RPCMessage rpc(MessageType::Request);
 
         const char* ok = "Ok";
-        UDPMessage reply((unsigned char*)ok, strlen(ok));
 
         auto send_ok = [&]() {
+            UDPMessage reply((unsigned char*)ok, strlen(ok));
             server->SendReply(&reply, client);
         };
 
         int left, right;
-        char op;
+        unsigned int op;
         std::stringstream ss;
+        int res;
 
         while (1) {
             server->GetRequest(callMessage, client);
 
-            ss << *callMessage;
-            std::cout << "call message:" << *callMessage << '\n';
-            if (ss >> left && ss >> op && ss >> right) {
+            // ss << *callMessage;
+            // std::cout << "call message:" << *callMessage << '\n';
+            int mt;
+            int y;
+            ss >> mt >> y;
+            if (ss >> op >> left >> right) {
                 rpc.unmarshall(callMessage);
                 std::cout << "RPC: " << rpc << std::endl;
+                rpc.op(left, right, &res);
             }
+
+            RPCMessage rpc_reply(MessageType::Reply, 0, 0, res);
 
             if (strcmp((const char*)callMessage->GetMessage(), "Stop") == 0) {
                 std::cout << "Closing server, received \'Stop\'.\n";
@@ -42,6 +50,16 @@ int main(void)
                 continue;
             }
             send_ok();
+
+            if (mt == MessageType::Request) {
+                UDPMessage* reply = new UDPMessage(SIZE);
+                rpc_reply.marshall(&reply);
+                server->SendReply(reply, client);
+                // delete reply;
+
+                UDPMessage reply0((unsigned char*)std::to_string(res).c_str(), strlen(ok));
+                server->SendReply(&reply0, client);
+            }
         }
 
         delete client;
