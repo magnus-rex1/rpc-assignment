@@ -3,37 +3,49 @@
 int main(void)
 {
     try {
-        Server server(SERVER_PORT);
+        Server* server = new Server(SERVER_PORT);
 
         SocketAddress* client = new SocketAddress;
-        UDPMessage callMessage(1024);
+        UDPMessage* callMessage = new UDPMessage(1024);
+
+        RPCMessage rpc(MessageType::Request);
 
         const char* ok = "Ok";
+        UDPMessage reply((unsigned char*)ok, strlen(ok));
+
+        auto send_ok = [&]() {
+            server->SendReply(&reply, client);
+        };
+
+        int left, right;
+        char op;
+        std::stringstream ss;
 
         while (1) {
-            server.GetRequest(&callMessage, client);
+            server->GetRequest(callMessage, client);
 
-            if (strcmp((const char*)callMessage.GetMessage(), "Stop") == 0) {
+            ss << *callMessage;
+            std::cout << "call message:" << *callMessage << '\n';
+            if (ss >> left && ss >> op && ss >> right) {
+                rpc.unmarshall(callMessage);
+                std::cout << "RPC: " << rpc << std::endl;
+            }
+
+            if (strcmp((const char*)callMessage->GetMessage(), "Stop") == 0) {
                 std::cout << "Closing server, received \'Stop\'.\n";
-
-                UDPMessage reply((unsigned char*)ok, strlen(ok));
-                server.SendReply(&reply, client);
+                send_ok();
                 break;
             }
 
-            if (strcmp((const char*)callMessage.GetMessage(), "Ping") == 0) {
-                UDPMessage reply((unsigned char*)ok, strlen(ok));
-                server.SendReply(&reply, client);
+            if (strcmp((const char*)callMessage->GetMessage(), "Ping") == 0) {
+                send_ok();
                 continue;
             }
-
-            UDPMessage reply((unsigned char*)ok, strlen(ok));
-            server.SendReply(&reply, client);
+            send_ok();
         }
 
         delete client;
-        // server is destroyed by the OS when main returns
-
+        delete server;
     } catch (const std::exception& e) {
         std::cout << e.what() << std::endl;
     }

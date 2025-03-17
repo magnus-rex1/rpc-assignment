@@ -13,7 +13,7 @@ Message::Message(unsigned char* message, unsigned int len)
 
 Message::Message(unsigned int len)
 {
-    data = nullptr;
+    data = new unsigned char[len + 1];
     length = len;
 }
 

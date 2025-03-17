@@ -5,6 +5,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <ostream>
+#include <sstream>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -88,10 +89,22 @@ public:
     RPCMessage(MessageType);
     RPCMessage(MessageType, int, int, int);
     void marshall(Message**); // Marshalls self to Message argument
-    void unmarshal(Message*); // Unmarshalls from given argument to self
+    void unmarshall(Message*); // Unmarshalls from given argument to self
+
+    Status op(int, int, int*);
+
+    friend std::ostream& operator<<(std::ostream& os, const RPCMessage& m)
+    {
+        return os << m.type << ' '
+                  << m.requestId << ' '
+                  << m.procedureId << ' '
+                  << m.arg1 << ' '
+                  << m.arg2 << std::endl;
+    }
+
 private:
     MessageType type;
-    unsigned int requestId;
+    unsigned int requestId; // unique id
     unsigned int procedureId; // e.g. (1,2,3,4) for (+,-,*,/)
     int arg1, arg2; // arguments/ return parameters
 };

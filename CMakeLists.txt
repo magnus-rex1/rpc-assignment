@@ -10,6 +10,23 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 # add_compile_options(-Wall -Wextra -pedantic -fdiagnostics-color -fanalyzer)
 add_compile_options(-Wall -Wextra -pedantic -fdiagnostics-color)
 
-add_executable(server serverApp.cpp socket.cpp utils.cpp Message.cpp Server.cpp)
-add_executable(client clientApp.cpp socket.cpp utils.cpp Message.cpp Client.cpp)
+add_executable(
+    server # target. 'server' is the executable
+    serverApp.cpp
+    socket.cpp
+    utils.cpp
+    Message.cpp
+    RPCMessage.cpp
+    Server.cpp
+)
+
+add_executable(
+    client # target 'client' is the executable
+    clientApp.cpp
+    socket.cpp
+    utils.cpp
+    Message.cpp
+    RPCMessage
+    Client.cpp
+)
 
