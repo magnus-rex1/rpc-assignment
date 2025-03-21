@@ -30,7 +30,9 @@ int main(int argc, char** argv)
             std::stringstream ss(input);
             int left, right, op = -1;
             char c_op;
-            if (ss >> left >> c_op >> right && (c_op == '+' || c_op == '-' || c_op == '*' || c_op == '/')) {
+            std::string ops = "+-*/";
+
+            if (ss >> left >> c_op >> right && ops.find(c_op) != std::string::npos) {
                 switch (c_op) {
                 case '+':
                     op = 1;
@@ -55,7 +57,11 @@ int main(int argc, char** argv)
             }
 
             client->DoOperation(callMessage, replyMessage, dest);
-            std::cout << *replyMessage << std::endl;
+
+            // std::cout << *replyMessage << std::endl;
+            RPCMessage rpc(MessageType::Reply);
+            rpc.unmarshall(replyMessage);
+            std::cout << "The result is: " << rpc.getResult() << std::endl;
 
             delete callMessage;
             delete replyMessage;

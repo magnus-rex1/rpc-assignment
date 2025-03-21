@@ -1,5 +1,6 @@
 #include "socket.h"
 
+// SA - Socket Address
 void printSA(struct sockaddr_in sa)
 {
     printf("sa = %d, %s, %d\n",

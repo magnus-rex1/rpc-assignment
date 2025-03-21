@@ -41,7 +41,7 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, const Message& m)
     {
-        return os << m.data << std::endl;
+        return os << m.data;
     }
 
 private:
@@ -91,15 +91,21 @@ public:
     void marshall(Message**); // Marshalls self to Message argument
     void unmarshall(Message*); // Unmarshalls from given argument to self
 
-    Status op(int, int, int*);
+    Status eval();
+    Status add(int, int, int*);
+    Status sub(int, int, int*);
+    Status mul(int, int, int*);
+    Status div(int, int, int*);
+
+    int getResult(); // extract the result (arg1)
+    bool isInvalid(); // failed to unmarshall
 
     friend std::ostream& operator<<(std::ostream& os, const RPCMessage& m)
     {
-        return os << m.type << ' '
-                  << m.requestId << ' '
+        return os << m.requestId << ' '
                   << m.procedureId << ' '
                   << m.arg1 << ' '
-                  << m.arg2 << std::endl;
+                  << m.arg2;
     }
 
 private:
