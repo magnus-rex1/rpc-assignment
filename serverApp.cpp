@@ -1,3 +1,5 @@
+// Server main program
+//
 #include "socket.h"
 
 int main(void)
@@ -15,6 +17,9 @@ int main(void)
 
             if (strcmp((const char*)callMessage->GetMessage(), "Stop") == 0) {
                 std::cout << "Closing server, received \'Stop\'.\n";
+                const char* ok = "Closed server.\n";
+                UDPMessage reply((unsigned char*)ok, strlen(ok));
+                server->SendReply(&reply, client);
                 break;
             }
 
@@ -27,19 +32,20 @@ int main(void)
 
             RPCMessage rpc(MessageType::Reply);
             rpc.unmarshall(callMessage);
+            // If the message is valid, perform the calculation
             if (!rpc.isInvalid()) {
                 if (rpc.eval() == Status::Bad) {
                     const char* str = "Bad operation";
                     Message bad_op((unsigned char*)str, strlen(str));
                     server->SendReply(&bad_op, client);
-                    continue; // go back to the start of the loop
+                    continue; // restart the loop
                 }
 
                 Message* reply = new Message(1); // UDPMessage
                 rpc.marshall(&reply);
                 server->SendReply(reply, client);
                 delete reply;
-            } else {
+            } else { // not a valid arithmetic expression
                 const char* non_arithmetic = "Not an arithmetic expression";
                 UDPMessage reply((unsigned char*)non_arithmetic, strlen(non_arithmetic));
                 server->SendReply(&reply, client);

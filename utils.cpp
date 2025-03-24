@@ -1,4 +1,5 @@
 #include "socket.h"
+#include <sys/select.h>
 
 // SA - Socket Address
 void printSA(struct sockaddr_in sa)
@@ -35,4 +36,69 @@ void* get_in_addr(struct sockaddr* sa)
     }
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+int recvfromtimeout(int s, char* buf, int len, struct sockaddr* to, socklen_t* to_len, int timeout)
+{
+    fd_set fds;
+    int n;
+    struct timeval tv;
+
+    // set up the file descriptor set
+    FD_ZERO(&fds);
+    FD_SET(s, &fds);
+
+    // set up the struct timeval for the timeout
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+
+    // wait until timeout or datareceived
+    n = select(s + 1, &fds, NULL, NULL, &tv);
+    if (n == 0)
+        return -2;
+    if (n == -1)
+        return -1;
+
+    // data must be here, so do a normal recvfrom()
+    return recvfrom(s, buf, len, 0, to, to_len);
+}
+
+int server_timeout(int s, int timeout)
+{
+    fd_set fds;
+    int n;
+    struct timeval tv;
+
+    // set up the file descriptor set
+    FD_ZERO(&fds);
+    FD_SET(s, &fds);
+
+    // set up the struct timeval for the timeout
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+
+    // wait until timeout or datareceived
+    n = select(s + 1, &fds, NULL, NULL, &tv);
+    if (n == 0)
+        return -2; // timeout
+    if (n == -1)
+        return -1; // error
+
+    return 0;
+}
+
+int anyThingThere(int s)
+{
+    unsigned long read_mask;
+    struct timeval timeout;
+    int n;
+
+    timeout.tv_sec = 2; /*seconds wait*/
+    timeout.tv_usec = 0; /* micro seconds*/
+    read_mask = (1 << s);
+    if ((n = select(32, (fd_set*)&read_mask, 0, 0, &timeout)) < 0)
+        perror("Select fail:\n");
+    else
+        printf("n = %d\n", n);
+    return n;
 }

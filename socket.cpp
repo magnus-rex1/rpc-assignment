@@ -76,13 +76,42 @@ Status Socket::UDPreceive(UDPMessage** m, SocketAddress* origin)
 
     struct sockaddr_storage clientAddr;
     socklen_t clientLen = sizeof clientAddr;
+    bool failed = false;
 
-    int len = recvfrom(s, buffer, sizeof(buffer), 0, (struct sockaddr*)&clientAddr, &clientLen);
+    // timeout after five tries
+    for (int i = 0; i < 5; i++) {
+        int n = server_timeout(s, 5);
+        if (n == -2) {
+            std::cout << "Failed to connect to server...\n";
+            failed = true;
+        }
+    }
+    if (failed == true) {
+        std::cout << "Tried 5 times to connect to server, closing client now.\n";
+        throw std::runtime_error("Failed to find open server");
+    }
 
+    int len = recvfrom(s, buffer, sizeof buffer, 0, (struct sockaddr*)&clientAddr, &clientLen);
+
+    if (len == 0) {
+        std::cout << "Server closed connection.\n";
+    }
+
+    // Get the message origin
     *origin = *(SocketAddress*)&clientAddr;
 
     UDPMessage mess((unsigned char*)buffer, len); // create a new UDPMessage
     **m = mess; // transfer ownership of mess (deep copy)
 
     return status;
+}
+
+int Socket::anything()
+{
+    int n = recvfromtimeout(s, nullptr, 0, nullptr, 0, 2);
+    if (n == -2) {
+        std::cout << "took too long to respond\n";
+    }
+
+    return 0; // anyThingThere(this->s);
 }

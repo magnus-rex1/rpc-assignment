@@ -12,6 +12,8 @@ Status Client::DoOperation(UDPMessage* callMessage, UDPMessage* replyMessage, So
 {
     Status status = UDPsend(callMessage, server);
 
+    // anything();
+
     status = UDPreceive(&replyMessage, server);
     return status;
 }

@@ -7,20 +7,27 @@
 #include <ostream>
 #include <sstream>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #define SIZE 1024
 #define SERVER_PORT IPPORT_RESERVED + getuid()
 
+// Implementations in utils.cpp
 void printSA(struct sockaddr_in sa);
 void makeDestSA(struct sockaddr_in* sa, const char* hostname, int port);
 void makeLocalSA(struct sockaddr_in* sa);
 void makeReceiverSA(struct sockaddr_in* sa, int port);
+int recvfromtimeout(int s, char* buf, int len, struct sockaddr* to, socklen_t* to_len, int timeout);
+int anyThingThere(int s);
+int server_timeout(int s, int timeout);
+// --------------------------------------------------------------------
 
 enum Status {
     Ok,
     Bad,
-    WrongLength
+    WrongLength,
+    TimeOut
 };
 
 // typedef struct sockaddr_in SocketAddress;
@@ -60,6 +67,7 @@ public:
     void init(int port = 0);
     Status UDPsend(UDPMessage* m, SocketAddress* destination);
     Status UDPreceive(UDPMessage** m, SocketAddress* origin);
+    int anything(); // calls anyThingThere()
 
 private:
     int s; // socket descriptor

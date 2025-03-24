@@ -1,3 +1,5 @@
+// Main program for the client application
+//
 #include "socket.h"
 #include <iostream>
 #include <string>
@@ -32,6 +34,7 @@ int main(int argc, char** argv)
             char c_op;
             std::string ops = "+-*/";
 
+            // Check if expression contains any of the 4 operators
             if (ss >> left >> c_op >> right && ops.find(c_op) != std::string::npos) {
                 switch (c_op) {
                 case '+':
@@ -50,6 +53,7 @@ int main(int argc, char** argv)
                     break;
                 }
 
+                // Create and marshall an rpc message
                 RPCMessage rpc(MessageType::Request, op, left, right);
                 rpc.marshall(&callMessage);
             } else {
